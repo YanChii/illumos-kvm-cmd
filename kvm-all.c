@@ -360,6 +360,7 @@ static int kvm_get_dirty_pages_log_range(unsigned long start_addr,
     for (i = 0; i < len; i++) {
         if (bitmap[i] != 0) {
             c = leul_to_cpu(bitmap[i]);
+            printf("JDEBUG: synced %u dirty pages from KVM\n", c);
             do {
                 j = ffsl(c) - 1;
                 c &= ~(1ul << j);
@@ -413,6 +414,7 @@ static int kvm_physical_sync_dirty_bitmap(target_phys_addr_t start_addr,
 
         if (kvm_vm_ioctl(s, KVM_GET_DIRTY_LOG, &d) == -1) {
             DPRINTF("ioctl failed %d\n", errno);
+            printf("JDEBUG: RAM SAVE ioctl failed (KVM_GET_DIRTY_LOG=%d; errno=%d)\n", KVM_GET_DIRTY_LOG, errno);
             ret = -1;
             break;
         }
@@ -1069,8 +1071,99 @@ int kvm_vm_ioctl(KVMState *s, int type, ...)
     arg = va_arg(ap, void *);
     va_end(ap);
 
+	if(type == KVM_GET_CLOCK) {
+		printf("Caught KVM_GET_CLOCK..\n");
+		//return 0;
+	}
+	if(type == KVM_SET_CLOCK) {
+		printf("Caught KVM_SET_CLOCK..\n");
+		/*
+		struct jj_kvm_clock_data {
+			uint64_t clock;
+			uint32_t flags;
+			uint32_t pad[9];
+		} jj_kvm_clock_data;
+
+		struct jj_kvm_clock_data *cl = malloc(sizeof(jj_kvm_clock_data));
+		printf("BEFORE IOCTL: %" PRIu64 "\n", cl->clock);
+		cl->clock = 1643142152862832;
+		cl->flags = 0;
+		cl->pad[0] = 0;
+		cl->pad[1] = 0;
+		cl->pad[2] = 0;
+		cl->pad[3] = 0;
+		cl->pad[4] = 0;
+		cl->pad[5] = 0;
+		cl->pad[6] = 0;
+		cl->pad[7] = 0;
+		cl->pad[8] = 0;
+
+		return ioctl(s->vmfd, KVM_SET_CLOCK, (void*)cl);
+		*/
+	}
+	char *kvmioctl = 
+	type == KVM_RUN ? "KVM_RUN" :
+	type == KVM_GET_REGS ? "KVM_GET_REGS" :
+	type == KVM_SET_REGS ? "KVM_SET_REGS" :
+	type == KVM_GET_SREGS ? "KVM_GET_SREGS" :
+	type == KVM_SET_SREGS ? "KVM_SET_SREGS" :
+	type == KVM_INTERRUPT ? "KVM_INTERRUPT" :
+	type == KVM_SET_CPUID ? "KVM_SET_CPUID" :
+	type == KVM_SET_SIGNAL_MASK ? "KVM_SET_SIGNAL_MASK" :
+	type == KVM_GET_FPU ? "KVM_GET_FPU" :
+	type == KVM_SET_FPU ? "KVM_SET_FPU" :
+	type == KVM_GET_MSRS ? "KVM_GET_MSRS" :
+	type == KVM_SET_MSRS ? "KVM_SET_MSRS" :
+	type == KVM_GET_LAPIC ? "KVM_GET_LAPIC" :
+	type == KVM_SET_LAPIC ? "KVM_SET_LAPIC" :
+	type == KVM_GET_MP_STATE ? "KVM_GET_MP_STATE" :
+	type == KVM_SET_MP_STATE ? "KVM_SET_MP_STATE" :
+	type == KVM_X86_SETUP_MCE ? "KVM_X86_SETUP_MCE" :
+	type == KVM_X86_GET_MCE_CAP_SUPPORTED ? "KVM_X86_GET_MCE_CAP_SUPPORTED" :
+	type == KVM_X86_SET_MCE ? "KVM_X86_SET_MCE" :
+	type == KVM_REINJECT_CONTROL ? "KVM_REINJECT_CONTROL" :
+	type == KVM_SET_BOOT_CPU_ID ? "KVM_SET_BOOT_CPU_ID" :
+	type == KVM_SET_CLOCK ? "KVM_SET_CLOCK" :
+	type == KVM_GET_CLOCK ? "KVM_GET_CLOCK" :
+	type == KVM_GET_VCPU_EVENTS ? "KVM_GET_VCPU_EVENTS" :
+	type == KVM_SET_VCPU_EVENTS ? "KVM_SET_VCPU_EVENTS" :
+	type == KVM_GET_PIT2 ? "KVM_GET_PIT2" :
+	type == KVM_SET_PIT2 ? "KVM_SET_PIT2" :
+	type == KVM_GET_API_VERSION ? "KVM_GET_API_VERSION" :
+	type == KVM_CREATE_VM ? "KVM_CREATE_VM" :
+	type == KVM_GET_MSR_INDEX_LIST ? "KVM_GET_MSR_INDEX_LIST" :
+	type == KVM_GET_VCPU_MMAP_SIZE ? "KVM_GET_VCPU_MMAP_SIZE" :
+	type == KVM_GET_SUPPORTED_CPUID ? "KVM_GET_SUPPORTED_CPUID" :
+	type == KVM_CREATE_VCPU ? "KVM_CREATE_VCPU" :
+	type == KVM_GET_DIRTY_LOG ? "KVM_GET_DIRTY_LOG" :
+	type == KVM_SET_NR_MMU_PAGES ? "KVM_SET_NR_MMU_PAGES" :
+	type == KVM_GET_NR_MMU_PAGES ? "KVM_GET_NR_MMU_PAGES" :
+	type == KVM_SET_TSS_ADDR ? "KVM_SET_TSS_ADDR" :
+	type == KVM_SET_IDENTITY_MAP_ADDR ? "KVM_SET_IDENTITY_MAP_ADDR" :
+	type == KVM_CREATE_IRQCHIP ? "KVM_CREATE_IRQCHIP" :
+	type == KVM_IRQ_LINE ? "KVM_IRQ_LINE" :
+	type == KVM_IRQ_LINE_STATUS ? "KVM_IRQ_LINE_STATUS" :
+	type == KVM_GET_IRQCHIP ? "KVM_GET_IRQCHIP" :
+	type == KVM_SET_IRQCHIP ? "KVM_SET_IRQCHIP" :
+	type == KVM_CREATE_PIT ? "KVM_CREATE_PIT" :
+	type == KVM_GET_PIT ? "KVM_GET_PIT" :
+	type == KVM_SET_PIT ? "KVM_SET_PIT" :
+	type == KVM_CREATE_PIT2 ? "KVM_CREATE_PIT2" :
+	type == KVM_SET_GSI_ROUTING ? "KVM_SET_GSI_ROUTING" :
+	type == KVM_CHECK_EXTENSION ? "KVM_CHECK_EXTENSION" :
+	type == KVM_SET_CPUID2 ? "KVM_SET_CPUID2" :
+	type == KVM_GET_CPUID2 ? "KVM_GET_CPUID2" :
+	type == KVM_TPR_ACCESS_REPORTING ? "KVM_TPR_ACCESS_REPORTING" :
+	type == KVM_SET_VAPIC_ADDR ? "KVM_SET_VAPIC_ADDR" :
+	type == KVM_SET_USER_MEMORY_REGION ? "KVM_SET_USER_MEMORY_REGION" :
+	"<unknown>";
+
+	//printf("JDEBUG: running ioctl %s\n", kvmioctl);
+	if(type != KVM_GET_DIRTY_LOG && type != KVM_IRQ_LINE_STATUS)
+		printf("JDEBUG: Calling IOCTL: s->vmfd %i; type: %s (%u); arg: %u\n", s->vmfd, kvmioctl, type, arg);
     ret = ioctl(s->vmfd, type, arg);
     if (ret == -1) {
+        printf("JDEBUG: IOCTL failed: s->vmfd %i; type: %s (%i); arg: %u; errno: %i (%s)\n", s->vmfd, kvmioctl, type, arg, errno, strerror(errno));
         ret = -errno;
     }
     return ret;

@@ -1465,8 +1465,8 @@ int qemu_savevm_state_begin(Monitor *mon, QEMUFile *f, int blk_enable,
     QTAILQ_FOREACH(se, &savevm_handlers, entry) {
         if(se->set_params == NULL) {
             continue;
-	}
-	se->set_params(blk_enable, shared, se->opaque);
+		}
+		se->set_params(blk_enable, shared, se->opaque);
     }
     
     qemu_put_be32(f, QEMU_VM_FILE_MAGIC);
@@ -1477,6 +1477,8 @@ int qemu_savevm_state_begin(Monitor *mon, QEMUFile *f, int blk_enable,
 
         if (se->save_live_state == NULL)
             continue;
+
+		printf("JDEBUG: saving state of %s\n", se->idstr);
 
         /* Section type */
         qemu_put_byte(f, QEMU_VM_SECTION_START);
@@ -1787,6 +1789,7 @@ int qemu_loadvm_state(QEMUFile *f)
             le->version_id = version_id;
             QLIST_INSERT_HEAD(&loadvm_handlers, le, entry);
 
+            printf("JDEBUG: loading instance %s\n", idstr);
             ret = vmstate_load(f, le->se, le->version_id);
             if (ret < 0) {
                 fprintf(stderr, "qemu: warning: error while loading state for instance 0x%x of device '%s'\n",

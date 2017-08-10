@@ -452,6 +452,7 @@ int kvm_get_irqchip(kvm_context_t kvm, struct kvm_irqchip *chip)
     if (!kvm->irqchip_in_kernel) {
         return 0;
     }
+    printf("JDEBUG: Calling kvm_get_irqchip: %i; %i\n", kvm_state->vmfd, KVM_GET_IRQCHIP);
     r = kvm_vm_ioctl(kvm_state, KVM_GET_IRQCHIP, chip);
     if (r < 0) {
         perror("kvm_get_irqchip\n");

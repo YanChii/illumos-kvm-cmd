@@ -72,8 +72,9 @@ void process_incoming_migration(QEMUFile *f)
 
     incoming_expected = false;
 
-    if (autostart)
-        vm_start();
+	// Janci: disabled autostart after migration
+    //if (autostart)
+    //    vm_start();
 }
 
 int do_migrate(Monitor *mon, const QDict *qdict, QObject **ret_data)

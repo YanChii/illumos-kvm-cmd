@@ -494,6 +494,7 @@ static const VMStateDescription vmstate_kvmclock= {
     .minimum_version_id = 1,
     .minimum_version_id_old = 1,
     .pre_save = kvmclock_pre_save,
+    //.pre_save = NULL,
     .post_load = kvmclock_post_load,
     .fields      = (VMStateField []) {
         VMSTATE_U64(clock, struct kvm_clock_data),

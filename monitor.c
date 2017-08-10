@@ -2806,6 +2806,38 @@ static int do_closefd(Monitor *mon, const QDict *qdict, QObject **ret_data)
     return -1;
 }
 
+struct jj_kvm_clock_data {
+	uint64_t clock;
+	uint32_t flags;
+	uint32_t pad[9];
+} jj_kvm_clock_data;
+
+int do_asdf(Monitor *mon, const QDict *qdict, QObject **ret_data)
+{
+	printf("Som tu!\n");
+    struct jj_kvm_clock_data *cl = malloc(sizeof(jj_kvm_clock_data));
+	kvm_vm_ioctl(kvm_state, KVM_GET_CLOCK, cl);
+	printf("GET_CLOCK RESULT: %" PRIu64 "\n", cl->clock);
+/*
+	return 0;
+*/
+	printf("BEFORE IOCTL: %" PRIu64 "\n", cl->clock);
+	cl->clock = 1643142152862832;
+	cl->flags = 0;
+	cl->pad[0] = 0;
+	cl->pad[1] = 0;
+	cl->pad[2] = 0;
+	cl->pad[3] = 0;
+	cl->pad[4] = 0;
+	cl->pad[5] = 0;
+	cl->pad[6] = 0;
+	cl->pad[7] = 0;
+	cl->pad[8] = 0;
+	kvm_vm_ioctl(kvm_state, KVM_SET_CLOCK, (void*)cl);
+	printf("AFTER IOCTL:  %" PRIu64 "\n", cl->clock);
+
+}
+
 static void do_loadvm(Monitor *mon, const QDict *qdict)
 {
     int saved_vm_running  = vm_running;
