@@ -65,3 +65,6 @@ roms/vgabios/Makefile
 .stgit-*
 cscope.*
 libpng-1.5.4/
+#vim temp files
+*.swp
+*.swo
