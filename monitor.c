@@ -2812,9 +2812,44 @@ struct jj_kvm_clock_data {
 	uint32_t pad[9];
 } jj_kvm_clock_data;
 
+/* for KVM_GET_MSR_INDEX_LIST */
+static struct kvm_msr_list *kvm_get_msr_list(void);
+
 int do_asdf(Monitor *mon, const QDict *qdict, QObject **ret_data)
 {
 	printf("Som tu!\n");
+
+    struct kvm_msr_list sizer, *msrs;
+    int r;
+
+    sizer.nmsrs = 0;
+    r = kvm_ioctl(kvm_state, KVM_GET_MSR_INDEX_LIST, &sizer);
+    if (r < 0 && r != -E2BIG) {
+        return NULL;
+    }
+    /* Old kernel modules had a bug and could write beyond the provided
+       memory. Allocate at least a safe amount of 1K. */
+    msrs = qemu_malloc(10240);
+
+    msrs->nmsrs = sizer.nmsrs;
+    r = kvm_ioctl(kvm_state, KVM_SET_MSRS, msrs);
+    if (r < 0) {
+        free(msrs);
+        errno = r;
+        return NULL;
+    }
+
+
+	int i;
+	for(i = 0; i < msrs->nmsrs; i++)
+	{
+		printf("MSR num %i: 0x%x\n", i, msrs->indices[i]);
+	}
+
+
+	return 0;
+
+	// KVMCLOCK
     struct jj_kvm_clock_data *cl = malloc(sizeof(jj_kvm_clock_data));
 	kvm_vm_ioctl(kvm_state, KVM_GET_CLOCK, cl);
 	printf("GET_CLOCK RESULT: %" PRIu64 "\n", cl->clock);

@@ -215,11 +215,13 @@ static int kvm_get_msr(CPUState *env, struct kvm_msr_entry *msrs, int n)
     struct kvm_msrs *kmsrs = qemu_malloc(sizeof *kmsrs + n * sizeof *msrs);
     int r;
 
+	printf("JDEBUG: Getting MSRs from KVM...");
     kmsrs->nmsrs = n;
     memcpy(kmsrs->entries, msrs, n * sizeof *msrs);
     r = kvm_vcpu_ioctl(env, KVM_GET_MSRS, kmsrs);
     memcpy(msrs, kmsrs->entries, n * sizeof *msrs);
     free(kmsrs);
+
     return r;
 }
 
@@ -896,6 +898,10 @@ static int kvm_put_msrs(CPUState *env, int level)
 
     msr_data.info.nmsrs = n;
 
+	for(int xy = 0; xy < 50; xy++)
+	{
+		printf("JDEBUG: set_msr_num=%i (of %i); index=0x%x; data=%x\n", xy, n,  msrs[xy].index, msrs[xy].data);
+	}
     return kvm_vcpu_ioctl(env, KVM_SET_MSRS, &msr_data);
 
 }
@@ -1101,11 +1107,14 @@ static int kvm_get_msrs(CPUState *env)
     msrs[n++].index = MSR_IA32_TSC;
 #ifdef TARGET_X86_64
     if (lm_capable_kernel) {
+		printf("This IS lm_capable_kernel!\n");
         msrs[n++].index = MSR_CSTAR;
         msrs[n++].index = MSR_KERNELGSBASE;
         msrs[n++].index = MSR_FMASK;
         msrs[n++].index = MSR_LSTAR;
     }
+	else
+		printf("This is NOT lm_capable_kernel!\n");
 #endif
     msrs[n++].index = MSR_KVM_SYSTEM_TIME;
     msrs[n++].index = MSR_KVM_WALL_CLOCK;
@@ -1130,6 +1139,7 @@ static int kvm_get_msrs(CPUState *env)
     if (ret < 0) {
         return ret;
     }
+	printf("JDEBUG: hello from kvm_get_msrs(): requested_msrs=%i, returned_msrs=%i\n", n, ret);
 
     for (i = 0; i < ret; i++) {
         switch (msrs[i].index) {

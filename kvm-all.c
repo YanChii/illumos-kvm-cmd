@@ -357,10 +357,11 @@ static int kvm_get_dirty_pages_log_range(unsigned long start_addr,
      * bitmap-traveling is faster than memory-traveling (for addr...)
      * especially when most of the memory is not dirty.
      */
+	
+	printf("JDEBUG: syncing %u dirty pages from KVM\n", len);
     for (i = 0; i < len; i++) {
         if (bitmap[i] != 0) {
             c = leul_to_cpu(bitmap[i]);
-            printf("JDEBUG: synced %u dirty pages from KVM\n", c);
             do {
                 j = ffsl(c) - 1;
                 c &= ~(1ul << j);
@@ -412,6 +413,7 @@ static int kvm_physical_sync_dirty_bitmap(target_phys_addr_t start_addr,
 
         d.slot = mem->slot;
 
+		printf("JDEBUG: Calling KVM_GET_DIRTY_LOG...\n");
         if (kvm_vm_ioctl(s, KVM_GET_DIRTY_LOG, &d) == -1) {
             DPRINTF("ioctl failed %d\n", errno);
             printf("JDEBUG: RAM SAVE ioctl failed (KVM_GET_DIRTY_LOG=%d; errno=%d)\n", KVM_GET_DIRTY_LOG, errno);
@@ -1158,8 +1160,10 @@ int kvm_vm_ioctl(KVMState *s, int type, ...)
 	type == KVM_SET_USER_MEMORY_REGION ? "KVM_SET_USER_MEMORY_REGION" :
 	"<unknown>";
 
+	if(type == KVM_GET_MSR_INDEX_LIST)
+		printf("JDEBUG: Calling KVM_GET_MSR_INDEX_LIST...");
 	//printf("JDEBUG: running ioctl %s\n", kvmioctl);
-	if(type != KVM_GET_DIRTY_LOG && type != KVM_IRQ_LINE_STATUS)
+	if(type != KVM_GET_DIRTY_LOG && type != KVM_IRQ_LINE_STATUS && type != KVM_SET_USER_MEMORY_REGION)
 		printf("JDEBUG: Calling IOCTL: s->vmfd %i; type: %s (%u); arg: %u\n", s->vmfd, kvmioctl, type, arg);
     ret = ioctl(s->vmfd, type, arg);
     if (ret == -1) {

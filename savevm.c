@@ -455,6 +455,7 @@ void qemu_fflush(QEMUFile *f)
 static void qemu_fill_buffer(QEMUFile *f)
 {
     int len;
+	static int total = 0;
 
     if (!f->get_buffer)
         return;
@@ -463,6 +464,8 @@ static void qemu_fill_buffer(QEMUFile *f)
         abort();
 
     len = f->get_buffer(f->opaque, f->buf, f->buf_offset, IO_BUF_SIZE);
+	total+=len;
+	//printf("Cached %i bytes from migration stream. Total: %i\n", len, total);
     if (len > 0) {
         f->buf_index = 0;
         f->buf_size = len;
@@ -547,6 +550,7 @@ int qemu_get_buffer(QEMUFile *f, uint8_t *buf, int size1)
         buf += l;
         size -= l;
     }
+	//printf("Read %i bytes from migration stream.\n", size1 - size);
     return size1 - size;
 }
 
@@ -573,6 +577,7 @@ int qemu_get_byte(QEMUFile *f)
         if (f->buf_index >= f->buf_size)
             return 0;
     }
+	//printf("Read 1 byte from migration stream.\n");
     return f->buf[f->buf_index++];
 }
 
@@ -1765,6 +1770,7 @@ int qemu_loadvm_state(QEMUFile *f)
             instance_id = qemu_get_be32(f);
             version_id = qemu_get_be32(f);
 
+            printf("JDEBUG: loading instance %s\n", idstr);
             /* Find savevm section */
             se = find_se(idstr, instance_id);
             if (se == NULL) {
@@ -1789,7 +1795,6 @@ int qemu_loadvm_state(QEMUFile *f)
             le->version_id = version_id;
             QLIST_INSERT_HEAD(&loadvm_handlers, le, entry);
 
-            printf("JDEBUG: loading instance %s\n", idstr);
             ret = vmstate_load(f, le->se, le->version_id);
             if (ret < 0) {
                 fprintf(stderr, "qemu: warning: error while loading state for instance 0x%x of device '%s'\n",

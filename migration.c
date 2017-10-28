@@ -361,7 +361,7 @@ void migrate_fd_connect(FdMigrationState *s)
         return;
     }
     
-    migrate_fd_put_ready(s);
+    //migrate_fd_put_ready(s);
 }
 
 void migrate_fd_put_ready(void *opaque)
@@ -374,7 +374,8 @@ void migrate_fd_put_ready(void *opaque)
     }
 
     DPRINTF("iterate\n");
-    if (qemu_savevm_state_iterate(s->mon, s->file) == 1) {
+    //if (qemu_savevm_state_iterate(s->mon, s->file) == 1)
+	{
         int state;
         int old_vm_running = vm_running;
 

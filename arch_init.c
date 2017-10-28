@@ -246,7 +246,7 @@ static void sort_ram_list(void)
     qemu_free(blocks);
 }
 
-int ram_save_live(Monitor *mon, QEMUFile *f, int stage, void *opaque)
+int ram_save_live_orig(Monitor *mon, QEMUFile *f, int stage, void *opaque)
 {
     ram_addr_t addr;
     uint64_t bytes_transferred_last;
@@ -331,6 +331,57 @@ int ram_save_live(Monitor *mon, QEMUFile *f, int stage, void *opaque)
     expected_time = ram_save_remaining() * TARGET_PAGE_SIZE / bwidth;
 
     return (stage == 2) && (expected_time <= migrate_max_downtime());
+}
+
+// simplified one.
+// needs VM to be stopped before migration
+int ram_save_live(Monitor *mon, QEMUFile *f, int stage, void *opaque)
+{
+    ram_addr_t addr;
+    uint64_t bytes_transferred_last;
+    double bwidth = 0;
+    uint64_t expected_time = 0;
+
+	RAMBlock *block;
+	bytes_transferred = 0;
+	last_block = NULL;
+	last_offset = 0;
+	sort_ram_list();
+
+	/* Make sure all dirty bits are set */
+	cpu_physical_memory_set_dirty_tracking(0);
+	cpu_physical_memory_set_dirty_tracking(1);
+	QLIST_FOREACH(block, &ram_list.blocks, next) {
+		for (addr = block->offset; addr < block->offset + block->length;
+			 addr += TARGET_PAGE_SIZE) {
+			if (!cpu_physical_memory_get_dirty(addr,
+											   MIGRATION_DIRTY_FLAG)) {
+				cpu_physical_memory_set_dirty(addr);
+			}
+		}
+	}
+
+	qemu_put_be64(f, ram_bytes_total() | RAM_SAVE_FLAG_MEM_SIZE);
+
+	QLIST_FOREACH(block, &ram_list.blocks, next) {
+		qemu_put_byte(f, strlen(block->idstr));
+		qemu_put_buffer(f, (uint8_t *)block->idstr, strlen(block->idstr));
+		qemu_put_be64(f, block->length);
+	}
+
+    while (1) {
+        int bytes_sent;
+
+        bytes_sent = ram_save_block(f);
+        bytes_transferred += bytes_sent;
+        if (bytes_sent == 0) { /* no more blocks */
+            break;
+        }
+    }
+
+    qemu_put_be64(f, RAM_SAVE_FLAG_EOS);
+
+    return 0;
 }
 
 static inline void *host_from_stream_offset(QEMUFile *f,
@@ -431,6 +482,15 @@ int ram_load(QEMUFile *f, void *opaque, int version_id)
 
             ch = qemu_get_byte(f);
             memset(host, ch, TARGET_PAGE_SIZE);
+			// JDEBUG: save the memory also into file
+			char *mybuf[TARGET_PAGE_SIZE];
+			memcpy(mybuf, host, TARGET_PAGE_SIZE);
+			FILE *sidesave = NULL;
+			sidesave = fopen("./mem-sidesave", "a");
+			//fputc(ch, sidesave);
+			fwrite(mybuf, TARGET_PAGE_SIZE, 1, sidesave);
+			fclose(sidesave);
+
 #ifndef _WIN32
             if (ch == 0 &&
                 (!kvm_enabled() || kvm_has_sync_mmu())) {
@@ -446,6 +506,13 @@ int ram_load(QEMUFile *f, void *opaque, int version_id)
                 host = host_from_stream_offset(f, addr, flags);
 
             qemu_get_buffer(f, host, TARGET_PAGE_SIZE);
+			// JDEBUG: save the memory also into file
+			char *mybuf[TARGET_PAGE_SIZE];
+			memcpy(mybuf, host, TARGET_PAGE_SIZE);
+			FILE *sidesave = NULL;
+			sidesave = fopen("./mem-sidesave", "a");
+			fwrite(mybuf, TARGET_PAGE_SIZE, 1, sidesave);
+			fclose(sidesave);
         }
         if (qemu_file_has_error(f)) {
             return -EIO;
