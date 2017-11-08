@@ -72,8 +72,25 @@ void process_incoming_migration(QEMUFile *f)
 
     incoming_expected = false;
 
+	/*
+	 * Autostart after live migration is disabled to allow
+	 * cooperation with ZFS send/receive.
+	 * The migrated VM must be manually (or using script) resumed
+	 * using QMP command
+	 * { "execute": "cont" }
+	 *
+	 * The "cont" command is safe to issue when the
+	 * source VM reports that the migration has finished.
+	 * E.g. when QMP reports STOP event after issuing migrate command:
+	 * {"timestamp": {"seconds": 1509634182, "microseconds": 923392}, "event": "STOP"}
+	 * Or when command
+	 * { "execute": "query-migrate" }
+	 * returns
+	 * {"return": {"status": "completed"}}
+	 *
     if (autostart)
         vm_start();
+	*/
 }
 
 int do_migrate(Monitor *mon, const QDict *qdict, QObject **ret_data)
